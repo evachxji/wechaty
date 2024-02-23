@@ -26,7 +26,9 @@ import {
 
 import qrTerm from 'qrcode-terminal'
 import * as PUPPET from 'wechaty-puppet'
-import { log } from 'wechaty-puppet'
+import {log} from 'wechaty-puppet'
+import axios from 'axios';
+import {FileBox} from "file-box";
 
 /**
  *
@@ -62,22 +64,22 @@ const bot = WechatyBuilder.build(options)
  *
  */
 bot
-.on('logout', onLogout)
-.on('login', onLogin)
-.on('scan', onScan)
-.on('error', onError)
-.on('message', onMessage)
-/**
- *
- * 3. Start the bot!
- *
- */
-.start()
-.catch(async e => {
-  console.error('Bot start() fail:', e)
-  await bot.stop()
-  process.exit(-1)
-})
+  .on('logout', onLogout)
+  .on('login', onLogin)
+  .on('scan', onScan)
+  .on('error', onError)
+  .on('message', onMessage)
+  /**
+   *
+   * 3. Start the bot!
+   *
+   */
+  .start()
+  .catch(async e => {
+    console.error('Bot start() fail:', e)
+    await bot.stop()
+    process.exit(-1)
+  })
 
 /**
  *
@@ -91,7 +93,7 @@ bot
  *  `scan`, `login`, `logout`, `error`, and `message`
  *
  */
-function onScan (qrcode: string, status: ScanStatus) {
+function onScan(qrcode: string, status: ScanStatus) {
   if (status === ScanStatus.Waiting || status === ScanStatus.Timeout) {
     qrTerm.generate(qrcode)
 
@@ -108,15 +110,15 @@ function onScan (qrcode: string, status: ScanStatus) {
   // console.info(`[${ScanStatus[status]}(${status})] ${qrcodeImageUrl}\nScan QR Code above to log in: `)
 }
 
-function onLogin (user: Contact) {
+function onLogin(user: Contact) {
   console.info(`${user.name()} login`)
 }
 
-function onLogout (user: Contact) {
+function onLogout(user: Contact) {
   console.info(`${user.name()} logged out`)
 }
 
-function onError (e: Error) {
+function onError(e: Error) {
   console.error('Bot error:', e)
   /*
   if (bot.isLoggedIn) {
@@ -131,7 +133,7 @@ function onError (e: Error) {
  *    dealing with Messages.
  *
  */
-async function onMessage (msg: Message) {
+async function onMessage(msg: Message) {
   console.info(msg.toString())
 
   if (msg.self()) {
@@ -144,34 +146,88 @@ async function onMessage (msg: Message) {
     return
   }
 
-  const msgType = msg.type()
+  const room = msg.room();
+  if (room) {
+    // console.info(room);
 
+    const mentionSelf = await msg.mentionSelf()
+
+    console.info('群名：', room.payload.topic, '是否@我', mentionSelf);
+
+    if (!mentionSelf) {
+      return
+    }
+  }
+
+
+  const msgType = msg.type();
   switch (msgType) {
     case PUPPET.types.Message.Text:
-      console.info(msg.text())
-      // if (!/^(hi|hello)$/i.test(msg.text())) {
-      //   console.info('消息丢弃，仅匹配：hi')
-      //   return
-      // }
+      // 过滤掉@信息后的文本内容
+      const text = await msg.mentionText()
 
-      await msg.say('hello world')
+      console.info('文本内容：', text)
 
-      /**
-       * 2. 文件
-       */
-      // const fileBox = FileBox.fromFile('C:\\Users\\juncheng.ye\\Pictures\\2.jpg')
-      // await msg.say(fileBox)
-      // console.info('REPLY: %s', fileBox.toString())
-
-      /**
-       * 3. 联系人
-       */
-      const contactCard = await bot.Contact.find({ name: msg.text() })
-      if (!contactCard) {
-        console.info('not found contract:{}', msg.text())
+      // 文本过滤
+      if (!/^(hi|hello)$/i.test(text)) {
+        console.info('消息丢弃，匹配失败')
         return
       }
-      await msg.say(contactCard)
+
+      // 1. 文本
+      await msg.say('hello world')
+
+      // 2. 文件/图片
+      const fileBox = FileBox.fromFile('C:\\Users\\Administrator\\Pictures\\20230415项目爬山\\IMG_8800.JPG')
+      await msg.say(fileBox)
+      console.info('REPLY: %s', fileBox.toString())
+
+      // 3.异步http
+      axios.get('http://localhost:8000/a')
+        .then(response => {
+          console.log('http request, response:', response.data);
+        })
+        .catch(error => {
+          console.error('There was a problem with the request:', error);
+        });
+
+      // 4. 联系人（免费版的傀儡不支持）    only supported by puppet-padplus
+      // const contactCard = await bot.Contact.find({ name: msg.text() })
+      // if (!contactCard) {
+      //   console.info('not found contract:{}', msg.text())
+      //   return
+      // }
+      // await msg.say(contactCard)
+
+      // 5.url卡片（免费版的傀儡不支持）    only supported by puppet-padplus
+      // const linkPayload = new bot.UrlLink ({
+      //   description : 'WeChat Bot SDK for Individual Account, Powered by TypeScript, Docker, and Love',
+      //   thumbnailUrl: 'https://avatars0.githubusercontent.com/u/25162437?s=200&v=4',
+      //   title       : 'Welcome to Wechaty',
+      //   url         : 'https://github.com/wechaty/wechaty',
+      // })
+      // await msg.say(linkPayload)
+
+      // 6. 小程序（免费版的傀儡不支持）    only supported by puppet-padplus
+      // const miniProgramPayload = new bot.MiniProgram ({
+      //   username           : 'gh_xxxxxxx',     //get from mp.weixin.qq.com
+      //   appid              : 'wx21c7506e98a2fe75',                  //optional, get from mp.weixin.qq.com
+      //   title              : '来杯大师咖啡，开启一天好运',               //optional
+      //   pagepath           : '',               //optional
+      //   description        : '',               //optional
+      //   thumbnailurl       : '',               //optional
+      // })
+      // await msg.say(miniProgramPayload)
+
+      // 7. 位置（免费版的傀儡不支持）
+      // const location = new bot.Location({
+      //   accuracy: 15,
+      //   address: '北京市北京市海淀区45 Chengfu Rd',
+      //   latitude: 39.995120999999997,
+      //   longitude: 116.334154,
+      //   name: '东升乡人民政府(海淀区成府路45号)',
+      // })
+      // await msg.say(location)
 
       break
 
