@@ -1,6 +1,10 @@
 FROM debian:bullseye
 LABEL maintainer="Huan LI (李卓桓) <zixia@zixia.net>"
 
+#RUN sed -i s@/deb.debian.org/@/mirrors.aliyun.com/@g /etc/apt/sources.list
+#RUN apt-get clean
+#RUN apt-get update
+
 ENV DEBIAN_FRONTEND     noninteractive
 ENV WECHATY_DOCKER      1
 ENV LC_ALL              C.UTF-8
@@ -9,8 +13,8 @@ ENV NPM_CONFIG_LOGLEVEL warn
 
 # Instal the 'apt-utils' package to solve the error 'debconf: delaying package configuration, since apt-utils is not installed'
 # https://peteris.rocks/blog/quiet-and-unattended-installation-with-apt-get/
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list && apt update && \
+    apt install -y \
     apt-utils \
     autoconf \
     automake \

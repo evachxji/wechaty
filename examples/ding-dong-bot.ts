@@ -22,10 +22,11 @@ import {
   ScanStatus,
   Message,
   Contact,
-}                     from '../src/mods/mod.js' // from 'wechaty'
+} from '../src/mods/mod.js' // from 'wechaty'
 
 import qrTerm from 'qrcode-terminal'
-import { FileBox } from 'file-box'
+import * as PUPPET from 'wechaty-puppet'
+import { log } from 'wechaty-puppet'
 
 /**
  *
@@ -33,7 +34,7 @@ import { FileBox } from 'file-box'
  *
  */
 const options = {
-  name : 'ding-dong-bot',
+  name: 'ding-dong-bot',
 
   /**
    * You can specify different puppet for different IM protocols.
@@ -61,22 +62,22 @@ const bot = WechatyBuilder.build(options)
  *
  */
 bot
-  .on('logout', onLogout)
-  .on('login',  onLogin)
-  .on('scan',   onScan)
-  .on('error',  onError)
-  .on('message', onMessage)
+.on('logout', onLogout)
+.on('login', onLogin)
+.on('scan', onScan)
+.on('error', onError)
+.on('message', onMessage)
 /**
  *
  * 3. Start the bot!
  *
  */
-  .start()
-  .catch(async e => {
-    console.error('Bot start() fail:', e)
-    await bot.stop()
-    process.exit(-1)
-  })
+.start()
+.catch(async e => {
+  console.error('Bot start() fail:', e)
+  await bot.stop()
+  process.exit(-1)
+})
 
 /**
  *
@@ -143,35 +144,86 @@ async function onMessage (msg: Message) {
     return
   }
 
-  if (msg.type() !== bot.Message.Type.Text
-    || !/^(ding|ping|bing|code)$/i.test(msg.text())
-  ) {
-    console.info('Message discarded because it does not match ding/ping/bing/code')
-    return
+  const msgType = msg.type()
+
+  switch (msgType) {
+    case PUPPET.types.Message.Text:
+      console.info(msg.text())
+      // if (!/^(hi|hello)$/i.test(msg.text())) {
+      //   console.info('消息丢弃，仅匹配：hi')
+      //   return
+      // }
+
+      await msg.say('hello world')
+
+      /**
+       * 2. 文件
+       */
+      // const fileBox = FileBox.fromFile('C:\\Users\\juncheng.ye\\Pictures\\2.jpg')
+      // await msg.say(fileBox)
+      // console.info('REPLY: %s', fileBox.toString())
+
+      /**
+       * 3. 联系人
+       */
+      const contactCard = await bot.Contact.find({ name: msg.text() })
+      if (!contactCard) {
+        console.info('not found contract:{}', msg.text())
+        return
+      }
+      await msg.say(contactCard)
+
+      break
+
+    case PUPPET.types.Message.Image:
+    case PUPPET.types.Message.Attachment:
+    case PUPPET.types.Message.Audio:
+    case PUPPET.types.Message.Video:
+    case PUPPET.types.Message.Emoticon:
+      console.info(msg.toFileBox())
+      break
+
+    case PUPPET.types.Message.Contact:
+      msg.toContact().then((result) => {
+        console.info('收到联系人：', result)
+      })
+      break
+
+    case PUPPET.types.Message.Url:
+      msg.toUrlLink().then((result) => {
+        console.info('收到url：', result)
+      })
+      break
+
+    case PUPPET.types.Message.MiniProgram:
+      msg.toMiniProgram().then((result) => {
+        console.info('收到小程序：', result)
+      })
+      break
+
+    case PUPPET.types.Message.Location:
+      msg.toLocation().then((result) => {
+        console.info('收到位置：', result)
+      })
+      break
+
+    case PUPPET.types.Message.Post:
+      msg.toPost().then((result) => {
+        console.info('收到卡片：', result)
+      })
+      break
+
+    default:
+      log.warn('Wechaty',
+        'toSayable() can not convert not re-sayable type: %s(%s) for %s\n%s',
+        PUPPET.types.Message[msgType],
+        msgType,
+        msg,
+        new Error().stack,
+      )
+      return undefined
   }
 
-  /**
-   * 1. reply 'dong'
-   */
-  await msg.say('dong')
-  console.info('REPLY: dong')
-
-  /**
-   * 2. reply image(qrcode image)
-   */
-  const fileBox = FileBox.fromUrl('https://wechaty.github.io/wechaty/images/bot-qr-code.png')
-
-  await msg.say(fileBox)
-  console.info('REPLY: %s', fileBox.toString())
-
-  /**
-   * 3. reply 'scan now!'
-   */
-  await msg.say([
-    'Join Wechaty Developers Community\n\n',
-    'Scan now, because other Wechaty developers want to talk with you too!\n\n',
-    '(secret code: wechaty)',
-  ].join(''))
 }
 
 /**
