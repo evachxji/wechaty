@@ -137,12 +137,12 @@ async function onMessage(msg: Message) {
   console.info(msg.toString())
 
   if (msg.self()) {
-    console.info('Message discarded because its outgoing')
+    // console.info('Message discarded because its outgoing')
     return
   }
 
   if (msg.age() > 2 * 60) {
-    console.info('Message discarded because its TOO OLD(than 2 minutes)')
+    console.info('信息超时过期')
     return
   }
 
@@ -150,9 +150,14 @@ async function onMessage(msg: Message) {
   if (room) {
     // console.info(room);
 
+    const payload = room.payload;
+    if (!payload) {
+      return
+    }
+
     const mentionSelf = await msg.mentionSelf()
 
-    console.info('群名：', room.payload.topic, '是否@我', mentionSelf);
+    console.info('群名：', payload.topic, '是否@我', mentionSelf);
 
     if (!mentionSelf) {
       return
@@ -185,7 +190,7 @@ async function onMessage(msg: Message) {
       // 3.异步http
       axios.get('http://localhost:8000/a')
         .then(response => {
-          console.log('http request, response:', response.data);
+          console.log('发送了http请求,response:', response.data);
         })
         .catch(error => {
           console.error('There was a problem with the request:', error);
@@ -279,7 +284,7 @@ async function onMessage(msg: Message) {
       )
       return undefined
   }
-
+  return
 }
 
 /**
