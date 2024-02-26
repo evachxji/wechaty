@@ -27,7 +27,7 @@ import {
 import qrTerm from 'qrcode-terminal'
 import * as PUPPET from 'wechaty-puppet'
 import {log} from 'wechaty-puppet'
-import axios from 'axios';
+// import axios from 'axios';
 import {FileBox} from "file-box";
 
 /**
@@ -137,27 +137,29 @@ async function onMessage(msg: Message) {
   console.info(msg.toString())
 
   if (msg.self()) {
-    // console.info('Message discarded because its outgoing')
     return
   }
-
   if (msg.age() > 2 * 60) {
     console.info('信息超时过期')
     return
   }
 
+  // const contact = msg.talker();
+  // console.info('contact：', contact)
+
   const room = msg.room();
+
   if (room) {
     // console.info(room);
 
-    const payload = room.payload;
+    const payload = room.payload
     if (!payload) {
       return
     }
 
     const mentionSelf = await msg.mentionSelf()
 
-    console.info('群名：', payload.topic, '是否@我', mentionSelf);
+    console.info('群名：', payload.topic, '是否@我', mentionSelf)
 
     if (!mentionSelf) {
       return
@@ -271,6 +273,12 @@ async function onMessage(msg: Message) {
     case PUPPET.types.Message.Post:
       msg.toPost().then((result) => {
         console.info('收到卡片：', result)
+      })
+      break
+
+    case PUPPET.types.Message.Recalled:
+      msg.toRecalled().then((result) => {
+        console.info('撤回消息：', result)
       })
       break
 
